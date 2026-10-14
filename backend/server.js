@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { connectDB } = require('./config/db');
-
+const path = require('path');
+const fs = require('fs');
 // Load environment variables
 dotenv.config();
 
@@ -40,7 +41,28 @@ app.use('/api/progress', require('./routes/progressRoutes'));
 app.use('/api/notes', require('./routes/notesRoutes'));
 app.use('/api/flashcards', require('./routes/flashcardRoutes'));
 
-// 404 handler for undefined routes
+// Serve the built frontend
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendDistPath));
+
+  // Serve the frontend for browser routes
+  app.use((req, res, next) => {
+    if (
+      req.path === '/api' ||
+      req.path.startsWith('/api/') ||
+      req.method !== 'GET'
+    ) {
+      return next();
+    }
+
+    res.sendFile(frontendIndexPath);
+  });
+}
+
+// 404 handler for undefined API routes
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
